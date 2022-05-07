@@ -1,6 +1,7 @@
 async function drawChart() {
   // 1. Access data
   let dataset = await d3.json("./data/my_weather_data.json");
+  console.table(dataset[0]);
 
   // 2. Create chart dimensions
   const width = 600;
@@ -21,6 +22,8 @@ async function drawChart() {
     dimensions.height - dimensions.margin.top - dimensions.margin.bottom;
   dimensions.boundedRadius =
     dimensions.radius - (dimensions.margin.left + dimensions.margin.right) / 2;
+
+  console.log(dimensions);
 
   // 3. Draw canvas
   const wrapper = d3
