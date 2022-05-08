@@ -10,9 +10,9 @@ We'll reinforce concepts we've already learned as well as introduce concepts suc
 
 ## Getting set up
 
-We're going to breeze through the first four steps: accessing data, creating dimensions, drawing the canvas, and creating scales.
+A few of the steps have already been completed (they should be familiar by now): we've grabbed our data, created square dimensions, and drawn our canvas.
 
-I've already done a few of the steps, since they should be really familiar by now: we've grabbed our data, created square dimensions, and drawn our canvas.
+Note that we have a `boundedRadius` as part of the dimensions object:
 
 ```js
 async function drawChart() {
@@ -67,16 +67,16 @@ drawChart();
 
 ## Accessing the Data
 
-Start by creating data accessors. Doing this up front will remind us of the structure of our data, and let us focus on drawing our chart later.
-
-Let's look at the first data point by logging it out to our console after we fetch our data:
+I've logged the first data point to the console:
 
 ```js
 const dataset = await d3.json("./data/my_weather_data.json");
 console.table(dataset[0]);
 ```
 
-Since we already know what our final chart will look like, we can pull out all of the metrics we'll need. Let's create an accessor for each of the metrics we'll plot (`min temperature, max temperature, precipitation, cloud cover, uv, and date`).
+Since we already [know what our final chart will look like](https://dataviz-exercises.netlify.app/radar-chart/index.html), we can pull out all of the metrics we'll need.
+
+Create an accessor for each of the metrics: `min temperature, max temperature, precipitation, cloud cover, uv, and date with a date parser`.
 
 ```js
 const temperatureMinAccessor = (d) => d.temperatureMin;
@@ -105,6 +105,8 @@ const angleScale = d3
 ```
 
 > Note that we're using radians, instead of degrees. Angular math is generally easier with radians, and we'll want to use `Math.sin()` and `Math.cos()` later, which deals with radians. There are `2π` radians in a full circle. If you want to know more about radians, the [Wikipedia entry](https://en.wikipedia.org/wiki/Radian) is a good source.
+
+![radians diagram](https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Circle_radians.gif/300px-Circle_radians.gif)
 
 Code:
 
@@ -180,7 +182,7 @@ We're going to skip step 5 and use step 6 to get our feet wet with angular math.
 
 To get our feet wet with this angular math, we'll draw our peripherals before we draw our data elements.
 
-Let's switch those steps in our code:
+Switch those steps in our code:
 
 ```js
 // 6. Draw peripherals
@@ -188,44 +190,26 @@ Let's switch those steps in our code:
 // 5. Draw data
 ```
 
-Drawing the grid lines (peripheral) first is helpful in cases like this where we want our data elements to layer on top. If we wanted to keep our steps in order, we could also create a <g> element first to add our grid lines to after.
+Drawing the grid lines first is helpful in cases like this where we want our data elements to layer on top. If we wanted to keep our steps in order, we could also create a `<g>` element first to add our grid lines to after.
 
-Creating a group to hold our grid elements is also a good idea to keep our elements organized -- let's do that now.
+Creating a group to hold our grid elements keeps our elements organized:
 
 ```js
 const peripherals = bounds.append("g");
 ```
 
-## Draw month grid lines#
+## Draw Month Grid Lines
 
-Next, let's create one "spoke" for each month in our dataset. First, we'll need to create an array of each month. We already know what our first and last dates are - the `.domain()` of our angleScale. But how can we create a list of each month between those two dates?
+Create one "spoke" for each month in our dataset. First, we'll need to create an array of each month. We already know what our first and last dates are - the `.domain()` of our `angleScale`. But how can we create a list of each month between those two dates?
 
 The [d3-time module](https://github.com/d3/d3-time#intervals) has various intervals, which represent various units of time. For example, `d3.timeMinute()` represents every minute and `d3.timeWeek()`represents every week.
 
-Each of these intervals has a few methods - we can see those methods in the documentation, and also if we double-click into the source code in our dev tools console.
-
-For example, we could use the `.floor()` method to get the first "time" in the current month:
-
 ```js
-d3.timeMonth.floor(new Date());
-```
-
-d3 time intervals also have a `.range()` method that will return a list of datetime objects, spaced by the specified interval, between two dates, passed as parameters.
-
-Let's try it out by creating our list of months:
-
-```js
-const months = d3.timeMonth.range(...angleScale.domain());
+const months = d3.timeMonths(...angleScale.domain());
 console.log(months);
 ```
 
 Now we have an array of datetime objects corresponding to the beginning of each month in our dataset.
-
-d3-time gives us shortcut aliases that can make our code even more concise - we can use `d3.timeMonth()` instead of `d3.timeMonth.range()`.
-
-```js
-const months = d3.timeMonths(...angleScale.domain());
-```
 
 Let's use our array of months and draw one `<line>` per month:
 
@@ -235,12 +219,12 @@ const gridLines = months.forEach((month) => {
 });
 ```
 
-We'll need to find the angle for each month - use the angleScale to convert the date into an angle:
+We'll need to find the angle for each month - use the `angleScale` to convert the date into an angle:
 
 ```js
 const gridLines = months.forEach((month) => {
   const angle = angleScale(month);
-
+  console.log("angle", angle);
   return peripherals.append("line");
 });
 ```
@@ -251,7 +235,9 @@ Remember how we use our bounds to shift our chart according to our top and left 
 
 To make our math simpler, let's instead shift our bounds to start in the center of our chart.
 
-This will help us when we decide where to place our data and peripheral elements -- we'll only need to know where they lie in respect to the center of our circle.
+This will help us when we decide where to place our data and peripheral elements - we'll only need to know where they lie with respect to the center of our circle.
+
+Edit the bounds to center it:
 
 ```js
 const bounds = wrapper
@@ -264,12 +250,14 @@ const bounds = wrapper
   );
 ```
 
-We'll need to convert from angle to [x, y] coordinate many times in this chart. Let's create a function that makes that conversion for us. Our function will take two parameters:
+We'll need to convert from angle to `[x, y]` coordinate many times in this chart. Let's create a function that makes that conversion for us. Our function will take two parameters:
 
 1. the angle
-1. the offset
+2. the offset
 
 and return the `[x,y]` coordinates of a point rotated angle radians around the center, and offset time our circle's radius (`dimensions.boundedRadius`). This will give us the ability to draw elements at different radii (for example, to draw our precipitation bubbles slightly outside of our temperature chart, we'll offset them by 1.14 times our normal radius length).
+
+Add this line after the `angleScale`:
 
 ```js
 const getCoordinatesForAngle = (angle, offset = 1) => [];
@@ -277,11 +265,13 @@ const getCoordinatesForAngle = (angle, offset = 1) => [];
 
 To convert an angle into a coordinate, we'll dig into our knowledge of trigonometry. Let's look at the right-angle triangle (a triangle with a 90-degree angle) created by connecting our origin point (`[0,0]`) and our destination point (`[x,y]`).
 
-The numbers we already know are theta (`θ`) and the hypotenuse (`dimensions.boundedRadius \* offset`). We can use these numbers to calculate the lengths of the adjacent and opposite sides of our triangle, which will correspond to the x and y position of our destination point.
+![right angle triangle](img/sohcahtoa-triangle.png)
 
-Because our triangle has a right angle, we can multiply the sine and cosine of our angle by the length of our hypotenuse to calculate our x and y values (remember the `soh cah toa` mnenomic?).
+The numbers we already know are theta (`θ`) and the hypotenuse (`dimensions.boundedRadius * offset`). We can use these numbers to calculate the lengths of the adjacent and opposite sides of our triangle, which will correspond to the `x` and `y` position of our destination point.
 
-Let's implement this in our `getCoordinatesForAngle()` function.
+Because our triangle has a right angle, we can multiply the sine and cosine of our angle by the length of our hypotenuse to calculate our x and y values.
+
+Let's implement this in the `getCoordinatesForAngle()` function:
 
 ```js
 const getCoordinatesForAngle = (angle, offset = 1) => [
@@ -290,7 +280,7 @@ const getCoordinatesForAngle = (angle, offset = 1) => [
 ];
 ```
 
-This looks great, but we have to make one more tweak to our `getCoordinatesForAngle()` function - an angle of 0 would draw a line horizontally to the right of the origin point. But our radar chart starts in the center, above our origin point. Let's rotate our angles by 1/4 turn to return the correct points.
+We have to make one more tweak to our `getCoordinatesForAngle()` function - an angle of 0 would draw a line horizontally to the right of the origin point. But our radar chart starts in the center, above our origin point. Let's rotate our angles by `1/4` turn to return the correct points.
 
 > Remember that there are 2π radians in one full circle, so 1/4 turn would be 2π / 4, or π / 2.
 
@@ -320,7 +310,7 @@ months.forEach((month) => {
 });
 ```
 
-We can't see anything yet. Let's give our lines a stroke color in our `styles.css` file.
+Give the lines a stroke color in `styles.css`:
 
 ```css
 .grid-line {
@@ -345,6 +335,7 @@ months.forEach((month) => {
     .attr("y2", y)
     .attr("class", "grid-line");
 
+  // NEW
   const [labelX, labelY] = getCoordinatesForAngle(angle, 1.38);
   peripherals
     .append("text")
@@ -386,7 +377,7 @@ Our labels also aren't centered vertically with our spokes. Let's center them, u
 
 Our final chart has circular grid marks that mark different temperatures. Before we add this, we need a temperature scale that converts a temperature to a radius. Higher temperatures are drawn further from the center of our chart.
 
-Let's add a `radiusScale` at the end of our Create scales section. We'll want to use `nice()` to give us friendlier minimum and maximum values, since the exact start and end doesn't matter. Note that we didn't use `.nice()` to round the edges of our `angleScale`, since we want it to start and end exactly with its range.
+Let's add a `radiusScale` at the end of the scales section. We'll want to use `nice()` to give us friendlier minimum and maximum values, since the exact start and end doesn't matter. Note that we didn't use `.nice()` to round the edges of our `angleScale`, since we want it to start and end exactly with its range.
 
 ```js
 const radiusScale = d3
@@ -403,7 +394,7 @@ const radiusScale = d3
 
 > We're using the ES6 spread operator (`...`) to spread our arrays of min and max temperatures so we get one flat array with both arrays concatenated. If you're unfamiliar with this syntax read more [here](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_syntax).
 
-We'll be converting a single data point into an x or y value many times -- let's create two utility functions to help us to do just that. It seems simple enough now, but it's nice to have this logic in one place and not cluttering our `.attr()` functions.
+We'll be converting a single data point into an x or y value many times - let's create two utility functions to help us to do just that. It's nice to have this logic in one place and not cluttering our `.attr()` functions.
 
 ```js
 const getXFromDataPoint = (d, offset = 1.4) =>
@@ -424,7 +415,7 @@ const gridCircles = temperatureTicks.map((d) =>
 );
 ```
 
-Since `<circle>` elements default to a black fill, we won't be able to see much yet.
+Since `<circle>` elements default to a black fill, we won't be able to see much.
 
 Add some styles to remove the fill from any `.grid-line` elements and add a faint stroke:
 
@@ -466,7 +457,7 @@ We'll need to vertically center and dim our labels - update the `.tick-label-tem
 
 The labels are very helpful, but they're a little hard to read on top of our grid lines.
 
-Add a `<rect>` behind our labels that's the same color as the background of our page. We'll need to add this code before we draw our tickLabels and after our gridCircles, since SVG stacks elements in the order we draw them.
+Add a `<rect>` behind our labels that's the same color as the background of our page. We'll need to add this code _before we draw our tickLabels and after our gridCircles_, since SVG stacks elements in the order we draw them.
 
 ```js
 const tickLabelBackgrounds = temperatureTicks.map((d) => {
@@ -491,7 +482,7 @@ async function drawChart() {
 
   const temperatureMinAccessor = (d) => d.temperatureMin;
   const temperatureMaxAccessor = (d) => d.temperatureMax;
-  const uvAccessor = (d) => d.uxIndex;
+  const uvAccessor = (d) => d.uvIndex;
   const precipitationProbabilityAccessor = (d) => d.precipProbability;
   const precipitationTypeAccessor = (d) => d.precipType;
   const cloudAccessor = (d) => d.cloudCover;
@@ -669,7 +660,7 @@ async function drawChart() {
 
   const temperatureMinAccessor = (d) => d.temperatureMin;
   const temperatureMaxAccessor = (d) => d.temperatureMax;
-  const uvAccessor = (d) => d.uxIndex;
+  const uvAccessor = (d) => d.uvIndex;
   const precipitationProbabilityAccessor = (d) => d.precipProbability;
   const precipitationTypeAccessor = (d) => d.precipType;
   const cloudAccessor = (d) => d.cloudCover;
@@ -849,7 +840,7 @@ Within that, we'll create several `<stop>` SVG elements that will tell the gradi
 
 For example, this code:
 
-```
+```svg
 <linearGradient>
   <stop stop-color="#12CBC4" offset="0%"></stop>
   <stop stop-color="#FFC312" offset="50%"></stop>
@@ -867,6 +858,8 @@ const defs = wrapper.append("defs");
 
 A `<linearGradient>` is the simplest gradient, but here, we'll want to use a `<radialGradient>`.
 
+Add this to the Draw Canvas section of our code:
+
 ```js
 const defs = wrapper.append("defs");
 
@@ -883,6 +876,8 @@ d3.range(numberOfStops).forEach((i) => {
 ```
 
 To use a gradient, all we need to do is set the fill or stroke of a SVG element to `url(#GRADIENT_ID)` (where `GRADIENT_ID` matches the gradient's `id` attribute).
+
+Edit the area variable:
 
 ```js
 const area = bounds
@@ -905,7 +900,7 @@ async function drawChart() {
 
   const temperatureMinAccessor = (d) => d.temperatureMin;
   const temperatureMaxAccessor = (d) => d.temperatureMax;
-  const uvAccessor = (d) => d.uxIndex;
+  const uvAccessor = (d) => d.uvIndex;
   const precipitationProbabilityAccessor = (d) => d.precipProbability;
   const precipitationTypeAccessor = (d) => d.precipType;
   const cloudAccessor = (d) => d.cloudCover;
@@ -1072,7 +1067,7 @@ drawChart();
 
 ## Adding the UV Index Marks
 
-Next, let's mark days that have a high UV index. But what does a "high UV index" mean? We'll need to make that decision ourselves -- let's define a "high UV day" as any day with a UV index over 8.
+Next, let's mark days that have a high UV index. But what does a "high UV index" mean? We'll need to make that decision ourselves - let's define a "high UV day" as any day with a UV index over 8.
 
 ```js
 const uvIndexThreshold = 8;
@@ -1128,7 +1123,7 @@ async function drawChart() {
 
   const temperatureMinAccessor = (d) => d.temperatureMin;
   const temperatureMaxAccessor = (d) => d.temperatureMax;
-  const uvAccessor = (d) => d.uxIndex;
+  const uvAccessor = (d) => d.uvIndex;
   const precipitationProbabilityAccessor = (d) => d.precipProbability;
   const precipitationTypeAccessor = (d) => d.precipType;
   const cloudAccessor = (d) => d.cloudCover;
@@ -1310,19 +1305,23 @@ drawChart();
 
 Next, we'll add our ring of circles around the outside to represent the amount of cloud cover for each day. We'll also learn something really important about visualizing data using circles.
 
-Next, let's add the gray circles around our chart that show how much cloud cover each day has. As a reminder, this is what our final chart will look like:
+Next, let's add the gray circles around our chart that show how much cloud cover each day has. As a reminder, [this is what our final chart will look like](https://dataviz-exercises.netlify.app/radar-chart/index.html).
 
 The radius of each of our circles will depend on the amount of cloud cover.
 
-> As an example of how we can use different dimensions to visualize a metric (like we learned in Module 6), we could have encoded the amount of cloud cover as the color of each circle, instead of the size. In this case, size works better because we're already using a color scale for our temperature and our precipitation type. To prevent from distracting the eye with too many colors, we'll vary our cloud cover circles by size instead.
+> As an example of how we can use different dimensions to visualize a metric, we could have encoded the amount of cloud cover as the color of each circle, instead of the size. In this case, size works better because we're already using a color scale for our temperature and our precipitation type. To prevent distracting the eye with too many colors, we'll vary our cloud cover circles by size instead.
 
-One caveat with visualizing a linear scale with a circle's size is that circles' areas and radii scale at different rates. Let's take a circle with a radius of 100px as an example. If we multiply its radius by 2, we'll get a circle with a radius of 200. However, the circle grows in every direction, making this larger circle cover four times as much space.
+One caveat with visualizing a linear scale with a circle's size is that circles' areas and radii scale at different rates. Let's take a circle with a radius of `100px` as an example. If we multiply its radius by 2, we'll get a circle with a radius of 200. However, the circle grows in every direction, making this larger circle cover four times as much space.
 
-Instead, we'll want a circle with a radius of 141 pixels to create a circle that is twice as large as our original circle.
+![circle area](img/areas-2.png)
 
-Since we, as humans, judge a circle by the amount of space it takes up, instead of how wide it is, we need a way to size our circles by their area instead of their radii. But `<circle>` elements are sized with their `r` attribute, so we need a way to scale our radii so that our areas scale linearly.
+Instead, we'd want a circle with a radius of 141 pixels to create a circle that is twice as large as our original circle.
 
-The area of a circle is the radius multiplied by π, then squared. If we flip this equation around, we'll find that the radius of a circle is the square root of a circle's area, divided by π.
+![circle area](img/circle-area.png)
+
+People judge a circle by the amount of space it takes up, not of how wide it is. So we need a way to size our circles by their area instead of their radii. But `<circle>` elements are sized with their `r` attribute, so we need a way to scale our radii so that our areas scale linearly.
+
+The area of a circle is the radius multiplied by π, then squared (`a = rπ**2`). If we flip this equation around, we'll find that the radius of a circle is the square root of a circle's area, divided by π.
 
 Since π is a constant, we can represent the relationship simply by using a square root scale.
 
@@ -1330,7 +1329,7 @@ Whenever we're scaling a circle's radius, we'll want to use `d3.scaleSqrt()` ins
 
 Let's create our cloud cover radius scale, making our circles' radii range from 1 to 10 pixels.
 
-> We'll write this code at the end of our Create scales step.
+Write this code at the end of the Create scales:
 
 ```js
 const cloudRadiusScale = d3
@@ -1361,7 +1360,13 @@ const cloudDots = cloudGroup
 
 Now we can see a ring of "clouds" around the outside of our chart.
 
-Let's set their `fill` color in our `styles.css` file, dimming them so they are a more natural "cloud" color, and so they don't visually dominate our chart.
+Tweak the circle size in order to better display clear days bysubtracting a small amount from the radius:
+
+```js
+.attr("r", (d) => cloudRadiusScale(cloudAccessor(d)) - 4);
+```
+
+Set their `fill` color in `styles.css`, dimming them so they are a more natural "cloud" color, and so they don't visually dominate our chart.
 
 ```css
 .cloud-dot {
@@ -1369,7 +1374,7 @@ Let's set their `fill` color in our `styles.css` file, dimming them so they are 
 }
 ```
 
-Let's also make our cloud circles somewhat translucent, so that larger circles don't completely cover their smaller neighbors.
+Make the cloud circles somewhat translucent, so that larger circles don't completely cover their smaller neighbors.
 
 ```css
 .cloud-dot {
@@ -1389,7 +1394,7 @@ async function drawChart() {
 
   const temperatureMinAccessor = (d) => d.temperatureMin;
   const temperatureMaxAccessor = (d) => d.temperatureMax;
-  const uvAccessor = (d) => d.uxIndex;
+  const uvAccessor = (d) => d.uvIndex;
   const precipitationProbabilityAccessor = (d) => d.precipProbability;
   const precipitationTypeAccessor = (d) => d.precipType;
   const cloudAccessor = (d) => d.cloudCover;
@@ -1584,13 +1589,19 @@ async function drawChart() {
 drawChart();
 ```
 
-## Adding the Precipitation Bubbles
+## Adding Precipitation Bubbles
 
 Next, we learn about ordinal scales and create the inner ring of circles to show the precipitation probability and type for each day.
 
-Next, we want to add a row of bubbles corresponding to each day's precipitation. We have two relevant metrics: probability of precipitation and type of precipitation. Let's visualize the probability with the size of the bubble and the type with the color of the bubble. This way, we can play to both dimensions' strengths - a large amount of blue will correspond to a high probability of rain. And we won't see a lot of a color if we're not confident that it did precipitate.
+We want to add a row of bubbles corresponding to each day's precipitation. We already have accessors for two relevant metrics: probability of precipitation and type of precipitation:
 
-To start, we'll create a scale to convert the probability of precipitation to the radius of a bubble. We'll make these circles a little smaller than our cloud circles, since they're closer to the middle of our circle (and thus have less space).
+`const precipitationProbabilityAccessor = (d) => d.precipProbability;`
+
+`const precipitationTypeAccessor = (d) => d.precipType;`
+
+Let's visualize the probability with the size of the bubble and the type with the color of the bubble. This way, we can play to both dimensions' strengths - a large amount of blue will correspond to a high probability of rain. And we won't see a lot of a color if we're not confident that it did precipitate.
+
+To start, create a scale to convert the probability of precipitation to the radius of a bubble. We'll make these circles a little smaller than our cloud circles, since they're closer to the middle of our circle (and thus have less space).
 
 > This code will go at the end of our Create scales step.
 
@@ -1652,7 +1663,7 @@ async function drawChart() {
 
   const temperatureMinAccessor = (d) => d.temperatureMin;
   const temperatureMaxAccessor = (d) => d.temperatureMax;
-  const uvAccessor = (d) => d.uxIndex;
+  const uvAccessor = (d) => d.uvIndex;
   const precipitationProbabilityAccessor = (d) => d.precipProbability;
   const precipitationTypeAccessor = (d) => d.precipType;
   const cloudAccessor = (d) => d.cloudCover;
@@ -1875,9 +1886,9 @@ drawChart();
 
 ## Adding Annotations
 
-We'll add annotations to our chart to tell our viewer what the different parts of the chart are showing. To do this, we'll create a generic function, since there are so many things to label.
+We'll add annotations to our chart to tell our viewer what the different parts of the chart are showing. Since there are so many things to label we'll create a generic function.
 
-Let's take a step back and look at our charts through a new viewer's eyes.
+First, let's take a step back and look at our charts through a new viewer's eyes.
 
 There's a lot going on and not much explanation. A new viewer might wonder: what does this blue dot represent? What are these yellow slashes? The goal of data visualization is communication - and being clear is important for effective communication.
 
@@ -2017,7 +2028,7 @@ async function drawChart() {
 
   const temperatureMinAccessor = (d) => d.temperatureMin;
   const temperatureMaxAccessor = (d) => d.temperatureMax;
-  const uvAccessor = (d) => d.uxIndex;
+  const uvAccessor = (d) => d.uvIndex;
   const precipitationProbabilityAccessor = (d) => d.precipProbability;
   const precipitationTypeAccessor = (d) => d.precipType;
   const cloudAccessor = (d) => d.cloudCover;
@@ -2296,11 +2307,11 @@ drawChart();
 
 ## Adding the Tooltip
 
-The tooltip we'll build will be unlike any you've seen before - it will follow the mouse all the way around our chart, highlight the relevant data elements, and describe the weather for that hovered date.
+Although our viewers can orient themselves to the different parts of our chart, we also want them to be able to dig in and view details about a particular day.
 
-Now for the fun part: adding interactions. Although our viewers can orient themselves to the different parts of our chart, we also want them to be able to dig in and view details about a particular day.
+The tooltip we'll build will be unlike any we've seen - it will follow the mouse all the way around our chart, highlight the relevant data elements, and describe the weather for that hovered date.
 
-Let's add a tooltip that shows up when the user hovered anywhere over the chart. We'll want to start by adding a listener element that covers our whole chart and initializing our mouse move events.
+The tooltip shows up when the user hovers over the chart. We'll want to start by adding a listener element that covers our whole chart and initializing our mouse move events.
 
 ```js
 const listenerCircle = bounds
@@ -2325,7 +2336,7 @@ Let's hide our listener by making its fill transparent.
 }
 ```
 
-Next, we'll need to create our tooltip element in our index.html file, with a spot for each of our hovered over day's metrics to be displayed.
+Next, we'll need to create our tooltip element in `index.html`, with a spot for each of our hovered over day's metrics to be displayed.
 
 ```html
 <div id="tooltip" class="tooltip">
@@ -2354,7 +2365,7 @@ Next, we'll need to create our tooltip element in our index.html file, with a sp
 </div>
 ```
 
-Let's also add our tooltip styles in our styles.css file, remembering to hide our tooltip and to give our wrapper a position to create a new context.
+Add tooltip styles to `styles.css` file, remembering to hide our tooltip and to give our wrapper a position to create a new context.
 
 ```css
 .wrapper {
@@ -2414,7 +2425,7 @@ Let's also add our tooltip styles in our styles.css file, remembering to hide ou
 }
 ```
 
-Switching back in our chart.js file, we'll want to grab our tooltip element to reference later, and also make a `<path>` element to highlight the hovered over day.
+Select the tooltip element to reference later, and make a `<path>` element to highlight the hovered over day:
 
 ```js
 const tooltip = d3.select("#tooltip");
@@ -2477,7 +2488,7 @@ Let's lighten the line in our styles.css file to prevent it from covering the da
 }
 ```
 
-Next, we'll want to position our tooltip at the end of our line. First, we'll grab the [x, y] coordinates of this point.
+Next, we'll want to position our tooltip at the end of our line. First, we'll grab the `[x, y]` coordinates of this point.
 
 ```js
 const outerCoordinates = getCoordinatesForAngle(angle, 1.6);
@@ -2562,7 +2573,7 @@ tooltip
 
 Notice that we're also setting the color of our precipitation type label and value, re-enforcing the relationship between the precipitation type and its color.
 
-Let's take this one step further! We're using a gradient of colors to show what temperatures each day spans. At the end of our Create scales step, let's create a new scale that maps temperatures to the gradient scale we're using.
+Let's take this one step further. We're using a gradient of colors to show what temperatures each day spans. At the end of our Create scales step, let's create a new scale that maps temperatures to the gradient scale we're using.
 
 ```js
 const temperatureColorScale = d3
