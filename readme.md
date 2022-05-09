@@ -265,7 +265,7 @@ const getCoordinatesForAngle = (angle, offset = 1) => [];
 
 To convert an angle into a coordinate, we'll dig into our knowledge of trigonometry. Let's look at the right-angle triangle (a triangle with a 90-degree angle) created by connecting our origin point (`[0,0]`) and our destination point (`[x,y]`).
 
-![right angle triangle](img/sohcahtoa-triangle.png)
+![right angle triangle](./img/sohcahtoa-triangle.png)
 
 The numbers we already know are theta (`θ`) and the hypotenuse (`dimensions.boundedRadius * offset`). We can use these numbers to calculate the lengths of the adjacent and opposite sides of our triangle, which will correspond to the `x` and `y` position of our destination point.
 
@@ -1313,11 +1313,11 @@ The radius of each of our circles will depend on the amount of cloud cover.
 
 One caveat with visualizing a linear scale with a circle's size is that circles' areas and radii scale at different rates. Let's take a circle with a radius of `100px` as an example. If we multiply its radius by 2, we'll get a circle with a radius of 200. However, the circle grows in every direction, making this larger circle cover four times as much space.
 
-![circle area](img/areas-2.png)
+![circle area](./img/areas-2.png)
 
 Instead, we'd want a circle with a radius of 141 pixels to create a circle that is twice as large as our original circle.
 
-![circle area](img/circle-area.png)
+![circle area](./img/circle-area.png)
 
 People judge a circle by the amount of space it takes up, not of how wide it is. So we need a way to size our circles by their area instead of their radii. But `<circle>` elements are sized with their `r` attribute, so we need a way to scale our radii so that our areas scale linearly.
 
