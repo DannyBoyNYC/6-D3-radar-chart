@@ -1313,11 +1313,11 @@ The radius of each of our circles will depend on the amount of cloud cover.
 
 One caveat with visualizing a linear scale with a circle's size is that circles' areas and radii scale at different rates. Let's take a circle with a radius of `100px` as an example. If we multiply its radius by 2, we'll get a circle with a radius of 200. However, the circle grows in every direction, making this larger circle cover four times as much space.
 
-![circle area](./img/areas-2.png)
+<img src="./img/areas-2.png" alt="area" style="width: 340px">
 
 Instead, we'd want a circle with a radius of 141 pixels to create a circle that is twice as large as our original circle.
 
-![circle area](./img/circle-area.png)
+<img src="./img/circle-area.png" alt="circle area" style="width: 340px">
 
 People judge a circle by the amount of space it takes up, not of how wide it is. So we need a way to size our circles by their area instead of their radii. But `<circle>` elements are sized with their `r` attribute, so we need a way to scale our radii so that our areas scale linearly.
 
